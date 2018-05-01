@@ -1,0 +1,4 @@
+rootProject.name = 'thesis-backend-auth-service'
+
+include 'backend-auth-service'
+

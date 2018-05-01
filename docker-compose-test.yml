@@ -1,0 +1,83 @@
+version: '3'
+
+services:
+# Commit
+  unit:
+    image: openjdk:8u162-jdk
+    volumes:
+      - .:/appsrc
+      - ./rootGradle:/root/.gradle
+    working_dir: /appsrc
+    command: bash -c "./gradlew clean build copyDockerFiles"
+
+  app:
+    build:
+      context: ./backend-auth-service/build/dockerfile/
+    image: thesis-authservice:snapshot
+
+# Staging
+  eurekapeer1:
+    image: thesis-eurekaservice:snapshot  # TODO fixed?
+#    image: localhost:5000/thesis-eurekaservice:latest
+    environment:
+      - PROFILE=peer1
+    ports:
+      - "7761:8761"
+
+  eurekapeer2:
+    image: thesis-eurekaservice:snapshot  # TODO fixed?
+#    image: localhost:5000/thesis-eurekaservice:latest
+    environment:
+      - PROFILE=peer2
+    ports:
+      - "7762:8761"
+
+  configservice:
+    image: thesis-configservice:snapshot  # TODO fixed?
+#    image: thesis-configservice:latest
+    depends_on:
+      - eurekapeer1
+      - eurekapeer2
+    environment:
+       EUREKASERVICE_URI: "http://eurekapeer1:8761/eureka/,http://eurekapeer2:8761/eureka/"
+       EUREKASERVICE_PORT: "8761"
+       ENCRYPT_KEY: "COMMON_SYMMETRIC_KEY"
+    ports:
+      - "7888:8888"
+
+  authservice:
+    image: thesis-authservice:snapshot
+    depends_on:
+      - eurekapeer1
+      - eurekapeer2
+      - configservice
+    environment:
+      PROFILE: "default"
+      SERVER_PORT: "9999"
+      CONFIGSERVICE_URI: "http://configservice:8888"
+      CONFIGSERVICE_PORT: "8888"
+      EUREKASERVICE_URI: "http://eurekapeer1:8761/eureka/,http://eurekapeer2:8761/eureka/"
+      EUREKASERVICE_PORT: "8761"
+      ENCRYPT_KEY: "COMMON_SYMMETRIC_KEY"
+    ports:
+      - "7999:9999"
+
+  staging:
+    image: openjdk:8u162-jdk
+    depends_on:
+      - eurekapeer1
+      - eurekapeer2
+      - configservice
+      - authservice
+    volumes:
+      - .:/appsrc
+      - ./rootGradle:/root/.gradle
+    environment:
+      - EUREKASERVICE_URI_1=http://eurekapeer1:8761
+      - EUREKASERVICE_URI_2=http://eurekapeer2:8761
+      - EUREKASERVICE_PORT=8761
+      - CONFIGSERVICE_URI=http://configservice:8888
+      - SAMPLESERVICE_URI=http://sampleservice:8090
+      - ENCRYPT_KEY="COMMON_SYMMETRIC_KEY"
+    working_dir: /appsrc
+    command: bash -c "ping -c 1 eurekapeer1 && ping -c 1 eurekapeer2 && ping -c 1 configservice && ping -c 1 authservice && ./gradlew integTest"

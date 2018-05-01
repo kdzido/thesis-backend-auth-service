@@ -1,0 +1,81 @@
+buildscript {
+    ext {
+        springBootVersion = '1.5.11.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath('io.spring.gradle:dependency-management-plugin:0.5.4.RELEASE')
+        classpath 'com.bmuschko:gradle-docker-plugin:3.2.4'
+    }
+}
+
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+import org.apache.tools.ant.filters.*
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group 'pl.pja.13868.news'
+version '0.1.0'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Edgware.SR2"
+    }
+}
+
+dependencies {
+    compile('org.springframework.cloud:spring-cloud-starter-config')
+    compile('org.springframework.cloud:spring-cloud-config-client')
+    compile('org.springframework.cloud:spring-cloud-starter-eureka')
+    compile('org.springframework.cloud:spring-cloud-starter-hystrix')
+    compile('org.springframework.cloud:spring-cloud-security')
+    compile('org.springframework.security.oauth:spring-security-oauth2')
+    compile('org.springframework.security:spring-security-jwt')
+
+    testCompile "org.codehaus.groovy:groovy-all:${groovyVersion}"
+    testCompile "org.codehaus.groovy.modules.http-builder:http-builder:${httpBuilderVersion}"
+    testCompile "junit:junit:${junitVersion}"
+    testCompile "org.spockframework:spock-core:${spockVersion}"
+    testCompile("cglib:cglib-nodep:${cglibVersion}")
+
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+}
+
+jar {
+    baseName = 'auth-service'
+
+    from(buildDir) {
+        include 'build-info.properties'
+        into('META-INF/')
+    }
+}
+
+task copyJars(dependsOn: jar, type: Copy) {
+    from jar
+    into "$buildDir/dockerfile"
+}
+
+task copyDockerFiles(dependsOn: [copyJars], type: Copy) {
+    from 'src/docker'
+    into "$buildDir/dockerfile"
+
+    String springBootJar = "auth-service-${project.version}.jar"
+    filter(ReplaceTokens, tokens: [springBootJar: springBootJar])
+}
+
+// TODO publish to artifactory

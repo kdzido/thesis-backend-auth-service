@@ -1,0 +1,14 @@
+
+allprojects {
+    ext {
+        httpBuilderVersion = '0.7.1'
+        awaitilityVersion = '3.1.0'
+        groovyVersion = '2.4.13'
+        cucumberVersion = '2.0.1'
+        groovyVersion = '2.4.7'
+        junitVersion = '4.12'
+        spockVersion = '1.1-groovy-2.4'
+        cglibVersion = '2.2'
+    }
+
+}

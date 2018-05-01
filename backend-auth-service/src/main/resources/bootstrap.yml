@@ -1,0 +1,14 @@
+info.component: OAuth2 Server
+
+spring:
+  application:
+    name: authservice
+  profiles:
+    active:
+      default
+
+spring.cloud.config.server.encrypt.enabled: false   # serving encrypted properties
+
+# TODO remove
+management.security.enabled: false
+
