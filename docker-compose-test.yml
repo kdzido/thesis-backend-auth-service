@@ -77,7 +77,7 @@ services:
       - EUREKASERVICE_URI_2=http://eurekapeer2:8761
       - EUREKASERVICE_PORT=8761
       - CONFIGSERVICE_URI=http://configservice:8888
-      - SAMPLESERVICE_URI=http://sampleservice:8090
+      - AUTHSERVICE_URI=http://authservice:9999
       - ENCRYPT_KEY="COMMON_SYMMETRIC_KEY"
     working_dir: /appsrc
     command: bash -c "ping -c 1 eurekapeer1 && ping -c 1 eurekapeer2 && ping -c 1 configservice && ping -c 1 authservice && ./gradlew integTest"

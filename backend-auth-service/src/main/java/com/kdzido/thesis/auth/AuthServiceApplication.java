@@ -5,12 +5,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -29,6 +32,16 @@ public class AuthServiceApplication {
     @RequestMapping(value="/v1/uuid", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, String> getInstanceUUID() {
         return ImmutableMap.of("instanceUUID" , String.valueOf(instanceUUID.toString()));
+    }
+
+    // TODO impl token validation endpoint
+    @RequestMapping(value="/user", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> user(final OAuth2Authentication user) {
+        final Map<String, Object> details = new HashMap<>();
+
+        details.put("user", user.getUserAuthentication().getPrincipal());
+        details.put("authorities", AuthorityUtils.authorityListToSet(user.getUserAuthentication().getAuthorities()));
+        return details;
     }
 
     public static void main(String[] args) {

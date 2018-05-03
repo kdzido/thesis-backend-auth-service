@@ -25,11 +25,18 @@ pipeline {
                 }
             }
         }
+        stage('Staging') {
+            steps {
+                withEnv(["COMPOSE_FILE=docker-compose-test.yml"]) {
+                    sh 'docker-compose run --rm staging'
+                }
+            }
+        }
     }
 
     post {
         always {
-            // TODO handle non-existing backend-config-service/build/dockerfile
+            // TODO handle non-existing backend-auth-service/build/dockerfile
             withEnv(["COMPOSE_FILE=docker-compose-test.yml"]) {
                 sh "docker-compose down"
             }
