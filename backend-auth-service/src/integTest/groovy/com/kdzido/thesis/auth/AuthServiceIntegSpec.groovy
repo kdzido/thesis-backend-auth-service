@@ -17,11 +17,11 @@ import static org.awaitility.Awaitility.await
 class AuthServiceIntegSpec extends Specification {
 
     final static AUTHSERVICE_URI = System.getenv("AUTHSERVICE_URI")
-//    final static AUTHSERVICE_URI = "http://localhost:7999"
 
     final clientCredentialsGrant = [
             grant_type: "client_credentials",
             scope: "webclient"]
+
     final passwordGrant = [
             grant_type: "password",
             scope: "mobileclient",
@@ -30,53 +30,114 @@ class AuthServiceIntegSpec extends Specification {
 
     def authServiceClient = new RESTClient("$AUTHSERVICE_URI").with {
         setHeaders(Accept: MediaType.APPLICATION_JSON_VALUE)
-        auth.basic("newsapp", "newsappsecret")
         it
     }
 
-    // TODO should reject token generation on invalid client credentials
-    // TODO should reject token generation on invalid user password
+    def "should acquire access token for client credentials grant"() {
+        setup:
+        authServiceClient.auth.basic("newsapp", "newsappsecret")
 
-    def "should issue valid access token for client application credentials grant"() {
         expect:
         await().atMost(3, TimeUnit.MINUTES).until({
             try {
-                def resp = authServiceClient.post(
-                        path: "/oauth/token",
+                def authServerResp = authServiceClient.post(
+                        path: "/auth/oauth/token",
                         body: clientCredentialsGrant,
                         requestContentType : URLENC)    // TODO multipart/form-data
-                resp.status == 200 &&
-                        resp.headers.'Content-Type'.contains(MediaType.APPLICATION_JSON_VALUE) &&
-                        resp.data.'access_token'.isEmpty() == false &&
-                        resp.data.'token_type' == "bearer" &&
+                authServerResp.status == 200 &&
+                        authServerResp.headers.'Content-Type'.contains(MediaType.APPLICATION_JSON_VALUE) &&
+                        authServerResp.data.'access_token'.isEmpty() == false &&
+                        authServerResp.data.'token_type' == "bearer" &&
 //                        resp.data.'refresh_token'.isEmpty() == false && // TODO multipart/form-data otherwise refresh_token is absent
-                        resp.data.'expires_in' ==~ /\d+/ &&
-                        resp.data.'scope' == "webclient"
+                        authServerResp.data.'expires_in' ==~ /\d+/ &&
+                        authServerResp.data.'scope' == "webclient"
             } catch (e) {
                 return false
             }
         })
     }
 
-    def "should issue valid access token for user password grant"() {
+    def "should acquire and validate access token for password grant"() {
+        setup:
+        authServiceClient.auth.basic("newsapp", "newsappsecret")
+        String accessToken
+
         expect:
         await().atMost(3, TimeUnit.MINUTES).until({
             try {
-                def resp = authServiceClient.post(
-                        path: "/oauth/token",
+
+                def authServerResp = authServiceClient.post(
+                        path: "/auth/oauth/token",
                         body: passwordGrant,
                         requestContentType : URLENC)    // TODO multipart/form-data
-                resp.status == 200 &&
-                        resp.headers.'Content-Type'.contains(MediaType.APPLICATION_JSON_VALUE) &&
-                        resp.data.'access_token'.isEmpty() == false &&
-                        resp.data.'token_type' == "bearer" &&
-//                        resp.data.'refresh_token'.isEmpty() == false && // TODO multipart/form-data otherwise refresh_token is absent
-                        resp.data.'expires_in' ==~ /\d+/ &&
-                        resp.data.'scope' == "mobileclient"
+
+                // token extracted
+                accessToken = authServerResp.data.'access_token'
+
+                def userInfoClient = new RESTClient("$AUTHSERVICE_URI").with {
+                    setHeaders(
+                            Accept: MediaType.APPLICATION_JSON_VALUE,
+                            Authorization: "Bearer $accessToken"
+                    )
+                    it
+                }
+                def userInfoResp = userInfoClient.get(path: "/auth/user")
+                return userInfoResp.status == 200 &&
+                        userInfoResp.headers.'Content-Type'.contains(MediaType.APPLICATION_JSON_VALUE) &&
+                        userInfoResp.data.user.username == "reader" &&
+                        userInfoResp.data.user.password == null &&
+                        userInfoResp.data.user.authorities.authority == ["ROLE_READER"] &&
+                        userInfoResp.data.user.accountNonExpired == true &&
+                        userInfoResp.data.user.accountNonLocked == true &&
+                        userInfoResp.data.user.credentialsNonExpired == true &&
+                        userInfoResp.data.user.enabled == true &&
+                        userInfoResp.data.authorities == ["ROLE_READER"]
             } catch (e) {
                 return false
             }
         })
     }
+
+    def "should reject token generation on invalid user password"() {
+        setup:
+        authServiceClient.auth.basic("newsapp", "WRONG_SECRET")
+
+        expect:
+        await().atMost(3, TimeUnit.MINUTES).until({
+            try {
+                authServiceClient.post(
+                        path: "/auth/oauth/token",
+                        body: passwordGrant,
+                        requestContentType : URLENC)
+                return false
+            } catch (e) {
+                assert e.response.status == 401
+                return true
+            }
+        })
+    }
+
+    def "should reject invalid access token"() {
+        setup:
+        def userInfoClient = new RESTClient("$AUTHSERVICE_URI").with {
+            setHeaders(
+                    Accept: MediaType.APPLICATION_JSON_VALUE,
+                    Authorization: "Bearer INVALID_TOKEN")
+            it
+        }
+
+        expect:
+        await().atMost(3, TimeUnit.MINUTES).until({
+            try {
+                userInfoClient.get(path: "/auth/user")
+                return false
+            } catch (e) {
+                assert e.response.status == 401
+                return true
+            }
+        })
+    }
+
+    // TODO should reject token generation on invalid client credentials
 
 }

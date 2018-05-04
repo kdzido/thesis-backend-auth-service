@@ -34,7 +34,6 @@ public class AuthServiceApplication {
         return ImmutableMap.of("instanceUUID" , String.valueOf(instanceUUID.toString()));
     }
 
-    // TODO impl token validation endpoint
     @RequestMapping(value="/user", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> user(final OAuth2Authentication user) {
         final Map<String, Object> details = new HashMap<>();

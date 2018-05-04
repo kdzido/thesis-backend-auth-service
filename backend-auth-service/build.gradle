@@ -1,6 +1,7 @@
 buildscript {
     ext {
-        springBootVersion = '1.5.11.RELEASE'
+        // TODO use 1.5.x (solve login page problem)
+        springBootVersion = '1.4.7.RELEASE'
     }
     repositories {
         mavenCentral()
@@ -25,7 +26,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 group 'pl.pja.13868.news'
-version '0.2.0'
+version '0.3.0'
 
 repositories {
     mavenLocal()
@@ -50,11 +51,15 @@ sourceSets {
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Edgware.SR2"
+        // TODO use Edgware (solve login page problem)
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Camden.SR7"
     }
 }
 
 dependencies {
+    compile('org.springframework.boot:spring-boot-starter-web')
+    compile('org.springframework.boot:spring-boot-starter-actuator')
+
     compile('org.springframework.cloud:spring-cloud-security')
     compile('org.springframework.security.oauth:spring-security-oauth2')
     compile('org.springframework.security:spring-security-jwt')
@@ -63,6 +68,9 @@ dependencies {
     compile('org.springframework.cloud:spring-cloud-config-client')
     compile('org.springframework.cloud:spring-cloud-starter-eureka')
     compile('org.springframework.cloud:spring-cloud-starter-hystrix')
+
+    compile('org.springframework.security:spring-security-rsa')
+    compile("com.netflix.hystrix:hystrix-javanica:1.5.9")
 
     testCompile "org.codehaus.groovy:groovy-all:${groovyVersion}"
     testCompile "org.codehaus.groovy.modules.http-builder:http-builder:${httpBuilderVersion}"

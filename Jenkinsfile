@@ -32,6 +32,14 @@ pipeline {
                 }
             }
         }
+        stage("Publish") { // Local Docker registry
+            steps {
+                sh "docker tag thesis-authservice:snapshot localhost:5000/thesis-authservice"
+                sh "docker tag thesis-authservice:snapshot localhost:5000/thesis-authservice:${env.BUILD_NUMBER}"
+                sh "docker push localhost:5000/thesis-authservice"
+                sh "docker push localhost:5000/thesis-authservice:${env.BUILD_NUMBER}"
+            }
+        }
     }
 
     post {

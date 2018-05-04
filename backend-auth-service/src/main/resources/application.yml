@@ -9,8 +9,8 @@ eureka:
     serviceUrl:
         defaultZone: http://localhost:8761/eureka/
 
-#server:
-#  contextPath:   /auth
+# avoids cookies to be sent
+server.contextPath: /auth
 
 # logging
 logging.level:
